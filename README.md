@@ -1,4 +1,4 @@
-# OptiLab CX-400 Compound Microscope Simulator
+# Compound Microscope Simulator
 
 An interactive compound brightfield microscope workstation built with **React**, **TypeScript**, **Vite**, and **Tailwind CSS**. It simulates specimen observation across `40×` to `1000×` magnification, coarse/fine focus depth-of-field blur, illumination and iris diaphragm controls, mechanical X/Y stage movement, `100×` oil immersion requirements, ocular reticle/micrometer calibration, and an animated hardware schematic.
 
