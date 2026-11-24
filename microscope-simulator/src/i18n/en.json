@@ -1,0 +1,10 @@
+{
+  "reticle": "Reticle",
+  "labels": "Labels",
+  "totalMag": "Total Mag",
+  "numAperture": "Num. Aperture",
+  "fovDiameter": "FOV Diameter",
+  "depthOfField": "Depth of Field",
+  "oilWarning": "100× Oil Immersion objective requires immersion oil drop (n = 1.515)",
+  "hint": "Drag inside eyepiece to pan slide • Scroll wheel to fine-focus • Arrow keys for stage X/Y"
+}
