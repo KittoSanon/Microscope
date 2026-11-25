@@ -180,7 +180,7 @@ export function App() {
 
           <div className="flex shrink-0 items-center gap-2">
             <SwitchLanguage />
-            <span
+            {/*<span
               className={`hidden rounded-lg border px-2.5 py-1.5 text-xs font-medium sm:inline-flex ${
                 specimenIsClear
                   ? 'border-emerald-500/40 bg-emerald-950/60 text-emerald-300'
@@ -190,7 +190,7 @@ export function App() {
               aria-live="polite"
             >
               {specimenIsClear ? 'Specimen clear' : 'Setup needed'}
-            </span>
+            </span>*/}
 
             {/* <button
               type="button"
