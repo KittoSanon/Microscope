@@ -403,20 +403,6 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
               {/* Reticle */}
               {t('viewport.reticle')}
             </button>
-
-            <button
-              type="button"
-              onClick={onToggleLabels}
-              className={`flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-all duration-150 cursor-pointer ${
-                optics.showLabels
-                  ? 'border-cyan-500/50 bg-cyan-950/70 text-cyan-300'
-                  : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <Tag className="h-3.5 w-3.5" />
-              {/* Labels */}
-              {t('viewport.labels')}
-            </button>
           </div>
         </div>
 

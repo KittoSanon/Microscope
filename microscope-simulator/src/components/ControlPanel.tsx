@@ -62,12 +62,6 @@ export const ControlPanel: FC<ControlPanelProps> = ({
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
             {t('control.nosepiece.title')}
           </span>
-          <span className="rounded border border-cyan-500/30 bg-cyan-950/60 px-2 py-0.5 font-mono text-[11px] tabular-nums text-cyan-300">
-            {t('control.nosepiece.total', {
-              total: optics.objective * 10,
-              obj: optics.objective,
-            })}
-          </span>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -128,16 +122,6 @@ export const ControlPanel: FC<ControlPanelProps> = ({
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
             {t('control.focus.title')}
-          </span>
-          <span
-            className={`rounded border px-2 py-0.5 font-mono text-[10px] tabular-nums transition-colors duration-150 ${
-              isSharp
-                ? 'border-emerald-500/40 bg-emerald-950/60 text-emerald-300'
-                : 'border-amber-500/40 bg-amber-950/60 text-amber-300'
-            }`}
-          >
-            {isSharp ? t('control.focus.sharp') : t('control.focus.blurry')} (Δz:{' '}
-            {deltaZ >= 0 ? `+${deltaZ.toFixed(1)}` : deltaZ.toFixed(1)} µm)
           </span>
         </div>
 

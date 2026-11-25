@@ -46,6 +46,95 @@ function lerp(current: number, target: number, factor: number): number {
   return current + diff * factor;
 }
 
+/* ------------------------------------------------------------------ */
+/* Label with a leader line. The text lives in a side column outside   */
+/* the microscope so it never overlaps the parts or other labels.      */
+/* ------------------------------------------------------------------ */
+const LINE_H = 13;
+const MAX_CHARS = 13;
+
+/** Break long labels into two lines at the separator nearest the middle. */
+function wrapLabel(text: string): string[] {
+  if (text.length <= MAX_CHARS) return [text];
+  const mid = text.length / 2;
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = 1; i < text.length - 1; i++) {
+    if (text[i] === ' ') {
+      const d = Math.abs(i - mid);
+      if (d <= bestDist) {
+        best = i;
+        bestDist = d;
+      }
+    }
+  }
+  if (best === -1) return [text];
+  return [text.slice(0, best), text.slice(best + 1)];
+}
+
+interface DiagramLabelProps {
+  text: string;
+  /** anchor point on the microscope part */
+  px: number;
+  py: number;
+  /** text position (left edge for "right" side, right edge for "left" side) */
+  tx: number;
+  ty: number;
+  side: 'left' | 'right';
+  highlight?: boolean;
+}
+
+const DiagramLabel: FC<DiagramLabelProps> = ({
+  text,
+  px,
+  py,
+  tx,
+  ty,
+  side,
+  highlight = false,
+}) => {
+  const lines = wrapLabel(text);
+  const elbowX = side === 'right' ? tx - 22 : tx + 22;
+  const stubX = side === 'right' ? tx - 5 : tx + 5;
+  const lineY = ty - 4; // vertical middle of the text
+
+  return (
+    <g className="pointer-events-none">
+      <polyline
+        points={`${px},${py} ${elbowX},${lineY} ${stubX},${lineY}`}
+        fill="none"
+        stroke={highlight ? '#22d3ee' : '#94a3b8'}
+        strokeWidth="0.9"
+        strokeOpacity="0.85"
+        strokeLinejoin="round"
+      />
+      <circle cx={px} cy={py} r="1.8" fill="#38bdf8" />
+      <text
+        x={tx}
+        y={ty - ((lines.length - 1) * LINE_H) / 2}
+        textAnchor={side === 'right' ? 'start' : 'end'}
+        className={`${
+          highlight ? 'fill-cyan-300' : 'fill-slate-100'
+        } font-mono text-[11px] font-semibold`}
+        paintOrder="stroke"
+        stroke="#090f1c"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      >
+        {lines.map((line, i) => (
+          <tspan key={i} x={tx} dy={i === 0 ? 0 : LINE_H}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+};
+
+// Column positions (SVG units)
+const LEFT_TEXT_X = 30; // text ends here, right-aligned
+const RIGHT_TEXT_X = 252; // text starts here, left-aligned
+
 export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
   selectedPart,
   onSelectPart,
@@ -64,7 +153,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
   const { t } = useTranslation();
   const focusCombined = Math.max(0, Math.min(100, coarseFocus + fineFocus * 0.15));
 
-  const targetsRef = useRef({
+  const computeTargets = () => ({
     turretAngle: OBJECTIVE_TURRET_ANGLE[objective],
     barrelH: OBJECTIVE_BARREL_HEIGHT[objective],
     focusAngle: -135 + (focusCombined / 100) * 270,
@@ -76,17 +165,8 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
     beamStrength: lampOn ? 0.15 + (illumination / 100) * 0.55 : 0,
   });
 
-  targetsRef.current = {
-    turretAngle: OBJECTIVE_TURRET_ANGLE[objective],
-    barrelH: OBJECTIVE_BARREL_HEIGHT[objective],
-    focusAngle: -135 + (focusCombined / 100) * 270,
-    stageY: ((50 - focusCombined) / 50) * 5,
-    slideX: Math.max(-11, Math.min(11, (pan.x / 220) * 11)),
-    vernierAngle: (pan.x / 220) * 150 + (pan.y / 220) * 75,
-    dimmerAngle: -135 + (illumination / 100) * 270,
-    irisWidth: 8 + (diaphragm / 100) * 18,
-    beamStrength: lampOn ? 0.15 + (illumination / 100) * 0.55 : 0,
-  };
+  const targetsRef = useRef(computeTargets());
+  targetsRef.current = computeTargets();
 
   const [anim, setAnim] = useState(targetsRef.current);
 
@@ -98,22 +178,19 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
       const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
       const smooth = 1 - Math.exp(-16 * dt);
-      const t = targetsRef.current;
+      const target = targetsRef.current;
 
-      setAnim((prev) => {
-        const next = {
-          turretAngle: lerp(prev.turretAngle, t.turretAngle, smooth),
-          barrelH: lerp(prev.barrelH, t.barrelH, smooth),
-          focusAngle: lerp(prev.focusAngle, t.focusAngle, smooth),
-          stageY: lerp(prev.stageY, t.stageY, smooth),
-          slideX: lerp(prev.slideX, t.slideX, smooth),
-          vernierAngle: lerp(prev.vernierAngle, t.vernierAngle, smooth),
-          dimmerAngle: lerp(prev.dimmerAngle, t.dimmerAngle, smooth),
-          irisWidth: lerp(prev.irisWidth, t.irisWidth, smooth),
-          beamStrength: lerp(prev.beamStrength, t.beamStrength, smooth),
-        };
-        return next;
-      });
+      setAnim((prev) => ({
+        turretAngle: lerp(prev.turretAngle, target.turretAngle, smooth),
+        barrelH: lerp(prev.barrelH, target.barrelH, smooth),
+        focusAngle: lerp(prev.focusAngle, target.focusAngle, smooth),
+        stageY: lerp(prev.stageY, target.stageY, smooth),
+        slideX: lerp(prev.slideX, target.slideX, smooth),
+        vernierAngle: lerp(prev.vernierAngle, target.vernierAngle, smooth),
+        dimmerAngle: lerp(prev.dimmerAngle, target.dimmerAngle, smooth),
+        irisWidth: lerp(prev.irisWidth, target.irisWidth, smooth),
+        beamStrength: lerp(prev.beamStrength, target.beamStrength, smooth),
+      }));
 
       rafId = requestAnimationFrame(tick);
     };
@@ -131,11 +208,11 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           {/* Microscope Parts */}
-          <h2 className="text-sm font-semibold text-slate-100">{ t('diagram.title') }</h2>
+          <h2 className="text-sm font-semibold text-slate-100">{t('diagram.title')}</h2>
           <span className="text-[10px] text-slate-400">
-            {selectedPart ? 
-            t('diagram.selected', { part: t(`diagram.parts.${selectedPart}`) })
-            : t('diagram.clickHint')}
+            {selectedPart
+              ? t('diagram.selected', { part: t(`diagram.parts.${selectedPart}`) })
+              : t('diagram.clickHint')}
           </span>
         </div>
         <button
@@ -153,9 +230,17 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
         </button>
       </div>
 
+      {/*
+        viewBox is wider than the microscope itself (x: 40..234) so there is
+        a free label column on each side:
+          left column  : x -145 .. 0
+          right column : x 252 .. 410
+        Keep this SVG wide (max-w ~ 600px). If the parent is narrower, the
+        whole drawing, including the text, scales down.
+      */}
       <svg
-        viewBox="0 0 280 355"
-        className="mx-auto my-1 h-full max-h-[440px] w-full max-w-[350px] select-none"
+        viewBox="-50 0 395 355"
+        className="mx-auto my-1 h-auto w-full max-w-[520px] select-none"
         role="img"
         aria-label="Animated Compound Microscope Schematic"
       >
@@ -285,19 +370,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             stroke="#64748b"
             strokeWidth="1.2"
           />
-          {showLabels && (
-            <text
-              x="178"
-              y="42"
-              className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-              paintOrder="stroke"
-              stroke="#090f1c"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            >
-              {t('diagram.labels.eyepiece')}
-            </text>
-          )}
         </g>
 
         {/* Revolving Nosepiece & Objectives */}
@@ -308,9 +380,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
           }}
           className="cursor-pointer"
         >
-          <g
-            transform={`rotate(${anim.turretAngle.toFixed(2)} 132 114)`}
-          >
+          <g transform={`rotate(${anim.turretAngle.toFixed(2)} 132 114)`}>
             <path
               d="M 104 108 L 160 108 L 166 121 L 98 121 Z"
               fill="#334155"
@@ -373,35 +443,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
               fill="#0f172a"
             />
           </g>
-
-          {showLabels && (
-            <>
-              <text
-                x="176"
-                y="108"
-                className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-                paintOrder="stroke"
-                stroke="#090f1c"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              >
-                {/* Nosepiece */}
-                {t('diagram.labels.nosepiece')}
-              </text>
-              <text
-                x="176"
-                y="128"
-                className="fill-cyan-300 font-mono text-[12px] font-semibold pointer-events-none"
-                paintOrder="stroke"
-                stroke="#090f1c"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              >
-                {/* {objective}x Objective */}
-                {t('diagram.labels.objective', { obj: objective })}
-              </text>
-            </>
-          )}
         </g>
 
         {/* Stage + Iris + X/Y Vernier */}
@@ -445,20 +486,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
               stroke={isHighlighted('stage') ? '#38bdf8' : '#64748b'}
               strokeWidth={isHighlighted('stage') ? '2.1' : '1.3'}
             />
-            {showLabels && (
-              <text
-                x="24"
-                y="197"
-                className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-                paintOrder="stroke"
-                stroke="#090f1c"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              >
-                {/* Stage */}
-                {t('diagram.labels.stage')}
-              </text>
-            )}
           </g>
 
           <g
@@ -484,20 +511,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
               fill="#38bdf8"
             />
             <circle cx="161" cy="208" r="2.5" fill="#38bdf8" />
-            {showLabels && (
-              <text
-                x="168"
-                y="211"
-                className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-                paintOrder="stroke"
-                stroke="#090f1c"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              >
-                {/* Iris Diaphragm */}
-                {t('diagram.labels.iris')}
-              </text>
-            )}
           </g>
 
           <g onClick={() => onSelectPart('stage')} className="cursor-pointer">
@@ -539,20 +552,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
                 strokeWidth="1.2"
               />
             </g>
-            {showLabels && (
-              <text
-                x="182"
-                y="234"
-                className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-                paintOrder="stroke"
-                stroke="#090f1c"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              >
-                {/* X/Y Stage */}
-                {t('diagram.labels.xyStage')}
-              </text>
-            )}
           </g>
         </g>
 
@@ -594,20 +593,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
               strokeLinecap="round"
             />
           </g>
-          {showLabels && (
-            <text
-              x="16"
-              y="277"
-              className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-              paintOrder="stroke"
-              stroke="#090f1c"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            >
-              {/* Coarse/Fine Focus */}
-              {t('diagram.labels.focus')}
-            </text>
-          )}
         </g>
 
         {/* Lamp & Dimmer */}
@@ -636,20 +621,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             fill={lampOn ? '#fef08a' : '#334155'}
             filter={lampOn ? 'url(#lampGlow)' : undefined}
           />
-          {showLabels && (
-            <text
-              x="158"
-              y="283"
-              className="fill-slate-100 font-mono text-[12px] font-semibold pointer-events-none"
-              paintOrder="stroke"
-              stroke="#090f1c"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            >
-              {/* Lamp / Brightness */}
-              {t('diagram.labels.lamp')}
-            </text>
-          )}
           <rect
             x="153"
             y="300"
@@ -688,10 +659,95 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             />
           </g>
         </g>
+
+        {/* ------------------------------------------------------------ */}
+        {/* Labels: drawn last, in side columns, with leader lines.      */}
+        {/* Vertical gap between labels in a column is >= 28 units.      */}
+        {/* ------------------------------------------------------------ */}
+        {showLabels && (
+          <g>
+            {/* ---- Right column ---- */}
+            {/* Eyepiece */}
+            <DiagramLabel
+              text={t('diagram.labels.eyepiece')}
+              px={168}
+              py={38}
+              tx={RIGHT_TEXT_X}
+              ty={44}
+              side="right"
+            />
+            {/* Nosepiece */}
+            <DiagramLabel
+              text={t('diagram.labels.nosepiece')}
+              px={164}
+              py={114}
+              tx={RIGHT_TEXT_X}
+              ty={100}
+              side="right"
+            />
+            {/* {objective}x Objective */}
+            <DiagramLabel
+              text={t('diagram.labels.objective', { obj: objective })}
+              px={140}
+              py={134}
+              tx={RIGHT_TEXT_X}
+              ty={134}
+              side="right"
+              highlight
+            />
+            {/* Iris Diaphragm (follows stage movement) */}
+            <DiagramLabel
+              text={t('diagram.labels.iris')}
+              px={161}
+              py={208 + anim.stageY}
+              tx={RIGHT_TEXT_X}
+              ty={204}
+              side="right"
+            />
+            {/* X/Y Stage */}
+            <DiagramLabel
+              text={t('diagram.labels.xyStage')}
+              px={174}
+              py={231 + anim.stageY}
+              tx={RIGHT_TEXT_X}
+              ty={240}
+              side="right"
+            />
+            {/* Lamp / Brightness */}
+            <DiagramLabel
+              text={t('diagram.labels.lamp')}
+              px={148}
+              py={288}
+              tx={RIGHT_TEXT_X}
+              ty={276}
+              side="right"
+            />
+
+            {/* ---- Left column ---- */}
+            {/* Stage */}
+            <DiagramLabel
+              text={t('diagram.labels.stage')}
+              px={82}
+              py={194.5 + anim.stageY}
+              tx={LEFT_TEXT_X}
+              ty={198}
+              side="left"
+            />
+            {/* Coarse/Fine Focus */}
+            <DiagramLabel
+              text={t('diagram.labels.focus')}
+              px={54}
+              py={244}
+              tx={LEFT_TEXT_X}
+              ty={262}
+              side="left"
+            />
+          </g>
+        )}
       </svg>
 
       <p className="border-t border-slate-800/80 pt-2 text-center text-[11px] text-slate-400">
-          <Trans
+        <Trans
           i18nKey="diagram.footer"
           components={{
             objective: <span className="text-cyan-400" />,
@@ -699,10 +755,6 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
           }}
         />
       </p>
-        
-        {/* Click <span className="text-cyan-400">objective</span> to cycle magnification or{' '}
-        <span className="text-cyan-400">lamp</span> to toggle power.
-      </p> */}
     </div>
   );
 };
