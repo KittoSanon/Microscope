@@ -5,14 +5,15 @@ import { MicroscopeDiagram } from './components/MicroscopeDiagram';
 import { MicroscopeViewport } from './components/MicroscopeViewport';
 import { getSlideById, SLIDE_REGISTRY } from './slides';
 
-import { LanguageSwitch } from './components/LanguagesSwitch';
-<LanguageSwitch />
+import SwitchLanguage from "../src/components/LanguagesSwitch"
+
 
 import type {
   MicroscopePartId,
   ObjectivePower,
   OpticsState,
 } from './types/microscope';
+import { useTranslation } from 'react-i18next';
 
 const OBJECTIVE_ORDER: ObjectivePower[] = [4, 10, 40, 100];
 
@@ -45,6 +46,9 @@ function createRandomChallenge(slide = SLIDE_REGISTRY[
 }
 
 export function App() {
+
+  const { t } = useTranslation();
+
   const [initialChallenge] = useState(createRandomChallenge);
   const [selectedSlideId, setSelectedSlideId] = useState<string>(
     initialChallenge.slideId
@@ -164,9 +168,9 @@ export function App() {
                 <h1 className="truncate text-sm font-bold leading-tight tracking-tight text-slate-100">
                   Compound Microscope Simulation
                 </h1>
-                <span className="shrink-0 rounded border border-cyan-500/30 bg-cyan-950/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none text-cyan-300">
+                {/* <span className="shrink-0 rounded border border-cyan-500/30 bg-cyan-950/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none text-cyan-300">
                   Brightfield Sim
-                </span>
+                  </span> */}
               </div>
               <p className="truncate text-[11px] leading-tight text-slate-400">
                 Create by Peson Suksabai
@@ -175,6 +179,7 @@ export function App() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <SwitchLanguage />
             <span
               className={`hidden rounded-lg border px-2.5 py-1.5 text-xs font-medium sm:inline-flex ${
                 specimenIsClear
@@ -187,14 +192,14 @@ export function App() {
               {specimenIsClear ? 'Specimen clear' : 'Setup needed'}
             </span>
 
-            <button
+            {/* <button
               type="button"
               onClick={handleAutoFocus}
               className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-cyan-500/40 bg-cyan-950/60 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-900/60 transition cursor-pointer"
             >
               <Crosshair className="h-3.5 w-3.5 shrink-0" />
               Auto-Focus
-            </button>
+            </button> */}
 
             <button
               type="button"
@@ -217,11 +222,12 @@ export function App() {
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                Prepared Slide Tray (Click to Mount Specimen)
+                {/* Sample slide */}
+                {t ('slideTray.sampleSlide')}
               </span>
-              <span className="shrink-0 rounded border border-slate-700 bg-slate-900 px-2.5 py-0.5 font-mono text-[11px] text-slate-300">
+              {/* <span className="shrink-0 rounded border border-slate-700 bg-slate-900 px-2.5 py-0.5 font-mono text-[11px] text-slate-300">
                 Stain: {activeSlide.stain}
-              </span>
+              </span> */}
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -244,7 +250,8 @@ export function App() {
                           active ? 'text-cyan-400' : 'text-slate-400'
                         }`}
                       >
-                        Slide 0{index + 1}
+                        {/* Slide 0{index + 1} */}
+                        {t('slideTray.slide', { num: index + 1 })}
                       </span>
                       <span
                         className="h-2 w-2 rounded-full"
@@ -252,10 +259,10 @@ export function App() {
                       />
                     </div>
                     <div className="mt-0.5 truncate text-xs font-semibold text-slate-100">
-                      {slide.shortTitle}
+                      {t(`slides.${slide.id}.shortTitle`, { defaultValue: slide.shortTitle })}
                     </div>
                     <div className="truncate text-[10px] text-slate-400">
-                      {slide.subtitle}
+                      {t(`slides.${slide.id}.subtitle`, { defaultValue: slide.subtitle })}
                     </div>
                   </button>
                 );

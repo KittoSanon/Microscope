@@ -1,7 +1,5 @@
-import React from 'react';
-
-
-
+import type { FC } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   MicroscopePartId,
   ObjectivePower,
@@ -15,26 +13,28 @@ interface ControlPanelProps {
   onChangeOptics: (updater: (prev: OpticsState) => OpticsState) => void;
 }
 
-const OBJECTIVE_CARDS: { power: ObjectivePower; label: string }[] = [
-  { power: 4, label: 'Scanning' },
-  { power: 10, label: 'Low Power' },
-  { power: 40, label: 'High Dry' },
-  { power: 100, label: 'Oil Imm' },
+// Store translation KEYS here, not text (this is outside the component)
+const OBJECTIVE_CARDS: { power: ObjectivePower; labelKey: string }[] = [
+  { power: 4, labelKey: 'control.objectives.scanning' },
+  { power: 10, labelKey: 'control.objectives.lowPower' },
+  { power: 40, labelKey: 'control.objectives.highDry' },
+  { power: 100, labelKey: 'control.objectives.oilImm' },
 ];
 
-export const ControlPanel: React.FC<ControlPanelProps> = ({
+export const ControlPanel: FC<ControlPanelProps> = ({
   optics,
   focalPlane,
   selectedPart,
   onChangeOptics,
 }) => {
+  const { t } = useTranslation();
+
   const cardHighlight = (parts: MicroscopePartId[]) =>
     selectedPart && parts.includes(selectedPart)
       ? 'border-cyan-500/70 ring-1 ring-cyan-500/40'
       : 'border-slate-800/90';
 
   const isHighMag = optics.objective >= 40;
-  // Coarse covers wide range (1.0x); Fine gives precision micro-steps (0.06x)
   const effectiveFocus = Math.max(
     0,
     Math.min(100, optics.coarseFocus + optics.fineFocus * 0.12)
@@ -44,13 +44,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const highMagCoarseHazard =
     isHighMag && Math.abs(optics.coarseFocus - focalPlane) > 8;
 
-  // Vernier scale coordinates centered at standard stage origin (35.00 mm, 12.00 mm)
   const vernierX = (35 + optics.pan.x * 0.05).toFixed(2);
   const vernierY = (12 + optics.pan.y * 0.05).toFixed(2);
 
   return (
     <div className="space-y-3">
-      {/* 1. Revolving Nosepiece (Objective) */}
+      {/* 1. Revolving Nosepiece */}
       <div
         className={`rounded-xl border bg-gradient-to-b from-[#0e1628] to-[#0a101e] p-3.5 transition-all duration-150 ${cardHighlight([
           'nosepiece',
@@ -61,15 +60,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="mb-2.5 flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            Revolving Nosepiece
+            {t('control.nosepiece.title')}
           </span>
           <span className="rounded border border-cyan-500/30 bg-cyan-950/60 px-2 py-0.5 font-mono text-[11px] tabular-nums text-cyan-300">
-            {optics.objective * 10}× Total ({optics.objective}× Obj)
+            {t('control.nosepiece.total', {
+              total: optics.objective * 10,
+              obj: optics.objective,
+            })}
           </span>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
-          {OBJECTIVE_CARDS.map(({ power, label }) => {
+          {OBJECTIVE_CARDS.map(({ power, labelKey }) => {
             const active = optics.objective === power;
             return (
               <button
@@ -85,7 +87,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 }`}
               >
                 <span className="text-xs font-bold tabular-nums">{power}×</span>
-                <span className="text-[10px] text-slate-400">{label}</span>
+                <span className="text-[10px] text-slate-400">{t(labelKey)}</span>
               </button>
             );
           })}
@@ -93,7 +95,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         <div className="mt-3 flex items-center justify-between border-t border-slate-800/80 pt-2.5">
           <span className="text-xs text-slate-400">
-            Immersion Oil Drop (n = 1.515):
+            {t('control.nosepiece.oilDrop')}
           </span>
           <button
             type="button"
@@ -109,12 +111,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 : 'border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-200'
             }`}
           >
-            {optics.oilImmersion ? 'ON (Oil Bridge)' : 'OFF (Air Gap)'}
+            {optics.oilImmersion
+              ? t('control.nosepiece.oilOn')
+              : t('control.nosepiece.oilOff')}
           </button>
         </div>
       </div>
 
-      {/* 2. Focus Adjustment (Z-Axis Stage) */}
+      {/* 2. Focus Adjustment */}
       <div
         className={`rounded-xl border bg-gradient-to-b from-[#0e1628] to-[#0a101e] p-3.5 transition-all duration-150 ${cardHighlight([
           'focus',
@@ -123,7 +127,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="mb-2.5 flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Focus Adjustment
+            {t('control.focus.title')}
           </span>
           <span
             className={`rounded border px-2 py-0.5 font-mono text-[10px] tabular-nums transition-colors duration-150 ${
@@ -132,7 +136,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 : 'border-amber-500/40 bg-amber-950/60 text-amber-300'
             }`}
           >
-            {isSharp ? 'Sharp Focus' : 'Out of Focus'} (Δz:{' '}
+            {isSharp ? t('control.focus.sharp') : t('control.focus.blurry')} (Δz:{' '}
             {deltaZ >= 0 ? `+${deltaZ.toFixed(1)}` : deltaZ.toFixed(1)} µm)
           </span>
         </div>
@@ -141,9 +145,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           <div>
             <div className="mb-1 flex justify-between text-xs">
               <span className="text-slate-300">
-                Coarse Focus Knob{' '}
+                {t('control.focus.coarse')}{' '}
                 <span className="text-[10px] text-slate-400">
-                  (Rough / Wide)
+                  {t('control.focus.coarseHint')}
                 </span>
               </span>
               <span className="font-mono tabular-nums text-slate-300">
@@ -169,9 +173,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           <div>
             <div className="mb-1 flex justify-between text-xs">
               <span className="text-slate-300">
-                Fine Focus Knob{' '}
+                {t('control.focus.fine')}{' '}
                 <span className="text-[10px] text-slate-400">
-                  (Precision / High-Mag)
+                  {t('control.focus.fineHint')}
                 </span>
               </span>
               <span className="font-mono tabular-nums text-slate-300">
@@ -200,9 +204,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
         {highMagCoarseHazard && (
           <p className="mt-2 rounded border border-amber-500/30 bg-amber-950/50 px-2.5 py-1 text-[10px] text-amber-200">
-            At {optics.objective}× magnification, depth of field is shallow—use
-            Fine Focus for small adjustments and avoid coarse sweeps to prevent
-            slide/objective contact.
+            {t('control.focus.hazard', { obj: optics.objective })}
           </p>
         )}
       </div>
@@ -217,7 +219,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="mb-2.5 flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-            Illuminator & Iris Diaphragm
+            {t('control.light.title')}
           </span>
           <button
             type="button"
@@ -235,14 +237,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 optics.lampOn ? 'bg-emerald-400' : 'bg-slate-500'
               }`}
             />
-            {optics.lampOn ? 'LAMP ON' : 'LAMP OFF'}
+            {optics.lampOn ? t('control.light.on') : t('control.light.off')}
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="mb-1 flex justify-between text-[11px]">
-              <span className="text-slate-300">Rheostat Brightness</span>
+              <span className="text-slate-300">{t('control.light.rheostat')}</span>
               <span className="font-mono tabular-nums text-amber-300">
                 {optics.illumination}%
               </span>
@@ -265,7 +267,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
           <div>
             <div className="mb-1 flex justify-between text-[11px]">
-              <span className="text-slate-300">Iris Aperture</span>
+              <span className="text-slate-300">{t('control.light.iris')}</span>
               <span className="font-mono tabular-nums text-cyan-300">
                 {optics.diaphragm}%
               </span>
@@ -288,7 +290,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       </div>
 
-      {/* 4. Mechanical Stage Vernier (X / Y) */}
+      {/* 4. Mechanical Stage Vernier */}
       <div
         className={`rounded-xl border bg-gradient-to-b from-[#0e1628] to-[#0a101e] p-3.5 transition-all duration-150 ${cardHighlight([
           'stage',
@@ -297,7 +299,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="mb-2.5 flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-300">
             <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-            Mechanical Stage Vernier
+            {t('control.stage.title')}
           </span>
           <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[10px] tabular-nums text-slate-300">
             X: {vernierX} mm | Y: {vernierY} mm
@@ -307,7 +309,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="mb-1 flex justify-between text-[11px]">
-              <span className="text-slate-300">Stage X (Left / Right)</span>
+              <span className="text-slate-300">{t('control.stage.x')}</span>
               <span className="font-mono tabular-nums text-slate-300">
                 {Math.round(optics.pan.x * 5)} µm
               </span>
@@ -330,7 +332,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
           <div>
             <div className="mb-1 flex justify-between text-[11px]">
-              <span className="text-slate-300">Stage Y (Up / Down)</span>
+              <span className="text-slate-300">{t('control.stage.y')}</span>
               <span className="font-mono tabular-nums text-slate-300">
                 {Math.round(optics.pan.y * 5)} µm
               </span>

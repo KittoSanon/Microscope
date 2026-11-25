@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FC } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Tag } from 'lucide-react';
 import type { MicroscopePartId, ObjectivePower } from '../types/microscope';
-
-
 
 interface MicroscopeDiagramProps {
   selectedPart: MicroscopePartId | null;
@@ -47,7 +46,7 @@ function lerp(current: number, target: number, factor: number): number {
   return current + diff * factor;
 }
 
-export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
+export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
   selectedPart,
   onSelectPart,
   showLabels,
@@ -62,6 +61,7 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
   onCycleObjective,
   onToggleLamp,
 }) => {
+  const { t } = useTranslation();
   const focusCombined = Math.max(0, Math.min(100, coarseFocus + fineFocus * 0.15));
 
   const targetsRef = useRef({
@@ -130,9 +130,12 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
     <div className="flex h-full flex-col justify-between rounded-xl border border-slate-800/80 bg-gradient-to-b from-[#0e1628] to-[#090f1c] p-3.5 shadow-lg">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-100">Microscope Parts</h2>
+          {/* Microscope Parts */}
+          <h2 className="text-sm font-semibold text-slate-100">{ t('diagram.title') }</h2>
           <span className="text-[10px] text-slate-400">
-            {selectedPart ? `Selected: ${selectedPart}` : 'Click a part to adjust'}
+            {selectedPart ? 
+            t('diagram.selected', { part: t(`diagram.parts.${selectedPart}`) })
+            : t('diagram.clickHint')}
           </span>
         </div>
         <button
@@ -146,7 +149,7 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
           }`}
         >
           <Tag className="h-3.5 w-3.5" />
-          Labels {showLabels ? 'On' : 'Off'}
+          Labels {showLabels ? t('diagram.labelsOn') : t('diagram.labelsOff')}
         </button>
       </div>
 
@@ -292,7 +295,7 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
               strokeWidth="3"
               strokeLinejoin="round"
             >
-              10x Eyepiece
+              {t('diagram.labels.eyepiece')}
             </text>
           )}
         </g>
@@ -382,7 +385,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
                 strokeWidth="3"
                 strokeLinejoin="round"
               >
-                Nosepiece
+                {/* Nosepiece */}
+                {t('diagram.labels.nosepiece')}
               </text>
               <text
                 x="176"
@@ -393,7 +397,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
                 strokeWidth="3"
                 strokeLinejoin="round"
               >
-                {objective}x Objective
+                {/* {objective}x Objective */}
+                {t('diagram.labels.objective', { obj: objective })}
               </text>
             </>
           )}
@@ -450,7 +455,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
                 strokeWidth="3"
                 strokeLinejoin="round"
               >
-                Stage
+                {/* Stage */}
+                {t('diagram.labels.stage')}
               </text>
             )}
           </g>
@@ -488,7 +494,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
                 strokeWidth="3"
                 strokeLinejoin="round"
               >
-                Iris Diaphragm
+                {/* Iris Diaphragm */}
+                {t('diagram.labels.iris')}
               </text>
             )}
           </g>
@@ -542,7 +549,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
                 strokeWidth="3"
                 strokeLinejoin="round"
               >
-                X/Y Stage
+                {/* X/Y Stage */}
+                {t('diagram.labels.xyStage')}
               </text>
             )}
           </g>
@@ -596,7 +604,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
               strokeWidth="3"
               strokeLinejoin="round"
             >
-              Coarse/Fine Focus
+              {/* Coarse/Fine Focus */}
+              {t('diagram.labels.focus')}
             </text>
           )}
         </g>
@@ -637,7 +646,8 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
               strokeWidth="3"
               strokeLinejoin="round"
             >
-              Lamp / Brightness
+              {/* Lamp / Brightness */}
+              {t('diagram.labels.lamp')}
             </text>
           )}
           <rect
@@ -681,9 +691,18 @@ export const MicroscopeDiagram: React.FC<MicroscopeDiagramProps> = ({
       </svg>
 
       <p className="border-t border-slate-800/80 pt-2 text-center text-[11px] text-slate-400">
-        Click <span className="text-cyan-400">objective</span> to cycle magnification or{' '}
-        <span className="text-cyan-400">lamp</span> to toggle power.
+          <Trans
+          i18nKey="diagram.footer"
+          components={{
+            objective: <span className="text-cyan-400" />,
+            lamp: <span className="text-cyan-400" />,
+          }}
+        />
       </p>
+        
+        {/* Click <span className="text-cyan-400">objective</span> to cycle magnification or{' '}
+        <span className="text-cyan-400">lamp</span> to toggle power.
+      </p> */}
     </div>
   );
 };

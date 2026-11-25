@@ -1,10 +1,126 @@
 {
-  "reticle": "Reticle",
-  "labels": "Labels",
-  "totalMag": "Total Mag",
-  "numAperture": "Num. Aperture",
-  "fovDiameter": "FOV Diameter",
-  "depthOfField": "Depth of Field",
-  "oilWarning": "100× Oil Immersion objective requires immersion oil drop (n = 1.515)",
-  "hint": "Drag inside eyepiece to pan slide • Scroll wheel to fine-focus • Arrow keys for stage X/Y"
+  "control": {
+    "objectives": {
+      "scanning": "Scanning",
+      "lowPower": "Low Power",
+      "highDry": "High Dry",
+      "oilImm": "Oil Imm"
+    },
+
+    "nosepiece": {
+      "title": "Revolving Nosepiece",
+      "total": "{{total}}× Total ({{obj}}× Obj)",
+      "oilDrop": "Immersion Oil Drop (n = 1.515):",
+      "oilOn": "ON (Oil Bridge)",
+      "oilOff": "OFF (Air Gap)"
+    },
+
+    "focus": {
+      "title": "Focus Adjustment",
+      "sharp": "Sharp Focus",
+      "blurry": "Out of Focus",
+      "coarse": "Coarse Focus Knob",
+      "coarseHint": "(Rough / Wide)",
+      "fine": "Fine Focus Knob",
+      "fineHint": "(Precision / High-Mag)",
+      "hazard": "At {{obj}}× magnification, depth of field is shallow—use Fine Focus for small adjustments and avoid coarse sweeps to prevent slide/objective contact."
+    },
+
+    "light": {
+      "title": "Illuminator & Iris Diaphragm",
+      "on": "LAMP ON",
+      "off": "LAMP OFF",
+      "rheostat": "Rheostat Brightness",
+      "iris": "Iris Aperture"
+    },
+
+    "stage": {
+      "title": "Mechanical Stage Vernier",
+      "x": "Stage X (Left / Right)",
+      "y": "Stage Y (Up / Down)"
+    }
+  },
+
+  "diagram": {
+    "title": "Microscope Parts",
+    "selected": "Selected: {{part}}",
+    "clickHint": "Click a part to adjust",
+    "labelsOn": "Labels On",
+    "labelsOff": "Labels Off",
+    "ariaLabel": "Animated Compound Microscope Schematic",
+    "parts": {
+      "ocular": "Eyepiece",
+      "nosepiece": "Nosepiece",
+      "objectives": "Objectives",
+      "stage": "Stage",
+      "diaphragm": "Iris Diaphragm",
+      "focus": "Focus Knobs",
+      "illuminator": "Illuminator"
+    },
+    "labels": {
+      "eyepiece": "10x Eyepiece",
+      "nosepiece": "Nosepiece",
+      "objective": "{{obj}}x Objective",
+      "stage": "Stage",
+      "iris": "Iris Diaphragm",
+      "xyStage": "X/Y Stage",
+      "focus": "Coarse/Fine Focus",
+      "lamp": "Lamp / Brightness"
+    },
+    "footer": "Click objective to cycle magnification or <lamp>lamp</lamp> to toggle power."
+  },
+
+  "app": {
+    "title": "Compound Microscope Simulation",
+    "author": "Created by Peson Suksabai",
+    "specimenClear": "Specimen clear",
+    "setupNeeded": "Setup needed",
+    "reset": "Reset"
+  },
+  "slideTray": {
+    "title": "Prepared Slide Tray (Click to mount specimen)",
+    "slide": "Slide {{num}}"
+  },
+  "slides": {
+    "text-slide": {
+      "shortTitle": "text", 
+      "subtitle": "Text Slide",
+      "name": "Text Slide",
+      "description": "This is a text slide. It contains a short paragraph of text that can be read under the microscope."
+    },
+    "onion-root-tip": { 
+      "shortTitle": "Onion Root Tip", 
+      "subtitle": "Mitosis Stages",
+      "name": "Onion Root Tip",
+      "description": "This slide shows the root tip of an onion. You can observe cells undergoing mitosis, including prophase, metaphase, anaphase, and telophase." 
+    },
+    "human-blood-smear": {
+       "shortTitle": "Human Blood", 
+       "subtitle": "RBCs, WBCs & Platelets",
+       "name": "Human Blood Smear",
+        "description": "This slide shows a smear of human blood. You can observe red blood cells (RBCs), white blood cells (WBCs), and platelets."
+    },
+    "pond-water-live": { 
+      "shortTitle": "Pond Water", 
+      "subtitle": "Live Microorganisms",
+      "name": "Pond Water (Live)",
+      "description": "This slide contains a sample of pond water. You can observe live microorganisms such as protozoa and algae swimming around."
+    },
+    "leaf-epidermis": { 
+      "shortTitle": "Leaf Epidermis", 
+      "subtitle": "Guard Cells & Stomata",
+      "name": "Leaf Epidermis",
+      "description": "This slide shows the epidermis of a leaf. You can observe guard cells and stomata, which are responsible for gas exchange in plants."
+    }
+  },
+
+  "viewport": {
+    "reticle": "Reticle",
+    "labels": "Labels",
+    "oilWarning": "100× Oil Immersion objective requires immersion oil drop (n = 1.515)",
+    "totalMag": "Total Mag",
+    "numAperture": "Num. Aperture",
+    "fovDiameter": "FOV Diameter",
+    "depthOfField": "Depth of Field"
+  }
 }

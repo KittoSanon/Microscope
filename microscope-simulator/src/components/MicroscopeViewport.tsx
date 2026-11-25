@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, type FC, type PointerEvent, type WheelEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crosshair, Tag } from 'lucide-react';
 import type { OpticsState, SlideDefinition } from '../types/microscope';
-
-
 
 interface MicroscopeViewportProps {
   slide: SlideDefinition;
@@ -32,7 +31,7 @@ const FLIP_V = true; // mirror up <-> down
 const fx = FLIP_H ? -1 : 1;
 const fy = FLIP_V ? -1 : 1;
 
-export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
+export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
   slide,
   optics,
   onPanChange,
@@ -40,6 +39,9 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
   onToggleReticle,
   onToggleLabels,
 }) => {
+
+  const { t } = useTranslation();
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const opticsRef = useRef<OpticsState>(optics);
   const slideRef = useRef<SlideDefinition>(slide);
@@ -326,13 +328,13 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
     };
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
     isDraggingRef.current = true;
     lastPointerRef.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
     if (!isDraggingRef.current) return;
     const dx = e.clientX - lastPointerRef.current.x;
     const dy = e.clientY - lastPointerRef.current.y;
@@ -353,14 +355,14 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
     });
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerUp = (e: PointerEvent<HTMLCanvasElement>) => {
     isDraggingRef.current = false;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
   };
 
-  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+  const handleWheel = (e: WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const step = e.deltaY > 0 ? -1.5 : 1.5;
     onFineFocusDelta(step);
@@ -378,10 +380,12 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
         <div className="flex shrink-0 items-start justify-between gap-2">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-slate-100">
-              {slide.name}
+              {/* {slide.name} */}
+              {t(`slides.${slide.id}.name`, { defaultValue: slide.name })}
             </h2>
             <p className="line-clamp-2 text-xs text-slate-400">
-              {slide.description}
+              {/* {slide.description} */}
+              {t(`slides.${slide.id}.description`, { defaultValue: slide.description })}
             </p>
           </div>
 
@@ -396,7 +400,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
               }`}
             >
               <Crosshair className="h-3.5 w-3.5" />
-              Reticle
+              {/* Reticle */}
+              {t('viewport.reticle')}
             </button>
 
             <button
@@ -409,7 +414,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
               }`}
             >
               <Tag className="h-3.5 w-3.5" />
-              Labels
+              {/* Labels */}
+              {t('viewport.labels')}
             </button>
           </div>
         </div>
@@ -441,7 +447,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
       <div className="mt-2.5 grid shrink-0 grid-cols-4 gap-2">
         <div className="rounded-lg border border-slate-800/80 bg-[#0d1424] py-2 px-2 text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Total Mag
+            {/* Total Mag */}
+            {t('viewport.totalMag')}
           </div>
           <div className="mt-0.5 font-mono text-sm font-bold tabular-nums text-cyan-400">
             {totalMag}×
@@ -450,7 +457,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
 
         <div className="rounded-lg border border-slate-800/80 bg-[#0d1424] py-2 px-2 text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Num. Aperture
+            {/* Num. Aperture */}
+            {t('viewport.numAperture')}
           </div>
           <div className="mt-0.5 font-mono text-sm font-bold tabular-nums text-slate-100">
             {spec.na}
@@ -459,7 +467,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
 
         <div className="rounded-lg border border-slate-800/80 bg-[#0d1424] py-2 px-2 text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            FOV Diameter
+            {/* FOV Diameter */}
+            {t('viewport.fovDiameter')}
           </div>
           <div className="mt-0.5 font-mono text-sm font-bold tabular-nums text-sky-400">
             {spec.fovUm} µm
@@ -468,7 +477,8 @@ export const MicroscopeViewport: React.FC<MicroscopeViewportProps> = ({
 
         <div className="rounded-lg border border-slate-800/80 bg-[#0d1424] py-2 px-2 text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            Depth of Field
+            {/* Depth of Field */}
+            {t('viewport.depthOfField')}
           </div>
           <div className="mt-0.5 font-mono text-sm font-bold tabular-nums text-slate-100">
             {spec.dofUm}
