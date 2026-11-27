@@ -49,7 +49,7 @@ export const leafEpidermisSlide: SlideDefinition = {
   stain: 'Toluidine Blue / Natural',
   description:
     'Pavement cells and the stomatal guard-cell layer occupy different depths. Use fine focus to inspect each plane.',
-  focalPlane: 47,
+  focalPlane: 77,
   requiresOilAt100x: false,
   labels: [
     { id: 'stoma', text: 'Stomatal Pore', x: 0, y: 0, minMag: 100 },

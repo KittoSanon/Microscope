@@ -92,7 +92,7 @@ export const pondWaterLiveSlide: SlideDefinition = {
   stain: 'Unstained / Brightfield',
   description:
     'Pond microorganisms drift at different depths. Use fine focus to inspect the moving Paramecium and algae planes.',
-  focalPlane: 58,
+  focalPlane: 88,
   requiresOilAt100x: false,
   isAnimated: true,
   labels: [

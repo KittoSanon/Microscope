@@ -21,7 +21,7 @@ export type MicroscopePartId =
 export interface OpticsState {
   objective: ObjectivePower; // Multiplied by 10x ocular -> 40x to 1000x
   coarseFocus: number;       // 0 - 100
-  fineFocus: number;         // -50 - +50
+  fineFocus: number;         // Detent count, at 1 percentage point per detent
   lampOn: boolean;
   illumination: number;      // 0 - 100
   diaphragm: number;         // 10 - 100

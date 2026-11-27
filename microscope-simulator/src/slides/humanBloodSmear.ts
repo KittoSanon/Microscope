@@ -61,7 +61,7 @@ export const humanBloodSmearSlide: SlideDefinition = {
   stain: 'Wright–Giemsa',
   description:
     'Red blood cells and platelets sit at slightly different depths from the white-cell layer. Use fine focus to inspect each plane.',
-  focalPlane: 44,
+  focalPlane: 74,
   requiresOilAt100x: true,
   labels: [
     { id: 'rbc', text: 'Erythrocyte (RBC)', x: -45, y: -20, minMag: 100 },

@@ -26,7 +26,7 @@ export const textSlide: SlideDefinition = {
   stain: 'Local Asset',
   description:
     'Image projection indecator',
-  focalPlane: 50,
+  focalPlane: 80,
   requiresOilAt100x: false,
   isAnimated: false,
   labels: [],

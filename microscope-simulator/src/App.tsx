@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Crosshair, Microscope, RotateCcw } from 'lucide-react';
 import { ControlPanel } from './components/ControlPanel';
 import { MicroscopeDiagram } from './components/MicroscopeDiagram';
@@ -14,6 +14,14 @@ import type {
   OpticsState,
 } from './types/microscope';
 import { useTranslation } from 'react-i18next';
+import {
+  COARSE_FOCUS_MAX_PERCENT,
+  COARSE_FOCUS_MIN_PERCENT,
+  FOCUS_CENTER_MAX,
+  FOCUS_CENTER_MIN,
+  FINE_FOCUS_LIMIT_DETENTS,
+  FINE_FOCUS_PERCENT_PER_DETENT,
+} from './constants/focus';
 
 const OBJECTIVE_ORDER: ObjectivePower[] = [4, 10, 40, 100];
 
@@ -24,14 +32,25 @@ function randomBetween(min: number, max: number): number {
 function createRandomChallenge(slide = SLIDE_REGISTRY[
   Math.floor(Math.random() * SLIDE_REGISTRY.length)
 ]) {
+  const focalPlane = Math.round(
+    randomBetween(FOCUS_CENTER_MIN, FOCUS_CENTER_MAX),
+  );
   const focusOffset = randomBetween(18, 30) * (Math.random() < 0.5 ? -1 : 1);
 
   return {
     slideId: slide.id,
+    focalPlane,
     optics: {
       objective: 4,
-      coarseFocus: Math.max(0, Math.min(100, slide.focalPlane + focusOffset)),
-      fineFocus: Math.round(randomBetween(-40, 40)),
+      coarseFocus: Math.round(
+        Math.max(
+          COARSE_FOCUS_MIN_PERCENT,
+          Math.min(COARSE_FOCUS_MAX_PERCENT, focalPlane + focusOffset),
+        ),
+      ),
+      fineFocus: Math.round(
+        randomBetween(-5, 5) / FINE_FOCUS_PERCENT_PER_DETENT,
+      ),
       lampOn: Math.random() < 0.5,
       illumination: Math.round(randomBetween(10, 35)),
       diaphragm: Math.round(randomBetween(20, 70)),
@@ -53,14 +72,23 @@ export function App() {
   const [selectedSlideId, setSelectedSlideId] = useState<string>(
     initialChallenge.slideId
   );
+  const [focusCenter, setFocusCenter] = useState(initialChallenge.focalPlane);
   const [optics, setOptics] = useState<OpticsState>(initialChallenge.optics);
   const [selectedPart, setSelectedPart] = useState<MicroscopePartId | null>(
     null
   );
   const [showDiagramLabels, setShowDiagramLabels] = useState(true);
 
-  const activeSlide = getSlideById(selectedSlideId);
-  const effectiveFocus = optics.coarseFocus + optics.fineFocus * 0.12;
+  const activeSlide = useMemo(
+    () => ({
+      ...getSlideById(selectedSlideId),
+      focalPlane: focusCenter,
+    }),
+    [selectedSlideId, focusCenter],
+  );
+  const effectiveFocus =
+    optics.coarseFocus +
+    optics.fineFocus * FINE_FOCUS_PERCENT_PER_DETENT;
   const specimenIsClear =
     Math.abs(effectiveFocus - activeSlide.focalPlane) < 1.2 &&
     optics.lampOn &&
@@ -70,6 +98,7 @@ export function App() {
     const nextSlide = getSlideById(slideId);
     const nextChallenge = createRandomChallenge(nextSlide);
     setSelectedSlideId(nextChallenge.slideId);
+    setFocusCenter(nextChallenge.focalPlane);
     setOptics(nextChallenge.optics);
     setSelectedPart(null);
   };
@@ -81,7 +110,10 @@ export function App() {
   const handleFineFocusDelta = useCallback((delta: number) => {
     setOptics((prev) => ({
       ...prev,
-      fineFocus: Math.max(-50, Math.min(50, prev.fineFocus + delta)),
+      fineFocus: Math.max(
+        -FINE_FOCUS_LIMIT_DETENTS,
+        Math.min(FINE_FOCUS_LIMIT_DETENTS, prev.fineFocus + delta),
+      ),
     }));
   }, []);
 
@@ -109,7 +141,9 @@ export function App() {
   };
 
   const handleReset = () => {
-    setOptics(createRandomChallenge(activeSlide).optics);
+    const nextChallenge = createRandomChallenge(activeSlide);
+    setFocusCenter(nextChallenge.focalPlane);
+    setOptics(nextChallenge.optics);
     setSelectedPart(null);
   };
 
@@ -128,7 +162,14 @@ export function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        (e.target as HTMLElement)?.getAttribute('role') === 'slider'
+      ) {
+        return;
+      }
 
       const step = Math.max(1, Math.round(48 / optics.objective));
       let dx = 0;

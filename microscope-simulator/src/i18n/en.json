@@ -22,7 +22,7 @@
       "coarse": "Coarse Adjustment Knob",
       "coarseHint": "(Rough / Wide)",
       "fine": "Fine Adjustment Knob",
-      "fineHint": "(Precision / High-Mag)",
+      "fineHint": "(Precision / High-Mag, 20 steps/turn)",
       "hazard": "At {{obj}}× magnification, depth of field is shallow—use Fine Focus for small adjustments and avoid coarse sweeps to prevent slide/objective contact."
     },
 

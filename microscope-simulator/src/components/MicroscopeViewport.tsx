@@ -2,6 +2,7 @@ import { useEffect, useRef, type FC, type PointerEvent, type WheelEvent } from '
 import { useTranslation } from 'react-i18next';
 import { Crosshair, Tag } from 'lucide-react';
 import type { OpticsState, SlideDefinition } from '../types/microscope';
+import { FINE_FOCUS_PERCENT_PER_DETENT } from '../constants/focus';
 
 interface MicroscopeViewportProps {
   slide: SlideDefinition;
@@ -30,6 +31,7 @@ const FLIP_H = true; // mirror left <-> right
 const FLIP_V = true; // mirror up <-> down
 const fx = FLIP_H ? -1 : 1;
 const fy = FLIP_V ? -1 : 1;
+const FOCUS_BLUR_GAIN = 4;
 
 export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
   slide,
@@ -106,7 +108,11 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
 
       const effectiveFocus = Math.max(
         0,
-        Math.min(100, currentOptics.coarseFocus + currentOptics.fineFocus * 0.12)
+        Math.min(
+          100,
+          currentOptics.coarseFocus +
+            currentOptics.fineFocus * FINE_FOCUS_PERCENT_PER_DETENT,
+        ),
       );
 
       const focusDelta = Math.abs(effectiveFocus - currentSlide.focalPlane);
@@ -121,7 +127,8 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
           : 0.55;
 
       const aperture = currentOptics.diaphragm / 100;
-      const dofMultiplier = baseDofMultiplier * (0.55 + aperture * 0.9);
+      const dofMultiplier =
+        baseDofMultiplier * (0.55 + aperture * 0.9) * FOCUS_BLUR_GAIN;
       const diffractionBlur = (1 - aperture) ** 2 * 0.7 * dpr;
 
       const missingOil =
@@ -177,7 +184,8 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
         ctx.translate(cx, cy);
         ctx.rotate(rotRad);
         ctx.scale(zoomScale * fx, zoomScale * tiltScaleY * fy);
-        ctx.translate(-s.panX, -s.panY);
+        // Moving the physical stage shifts the specimen oppositely in the eyepiece.
+        ctx.translate(s.panX, s.panY);
         currentSlide.render(ctx, timeMs, currentOptics);
         ctx.restore();
 
@@ -198,7 +206,7 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
           ctx.translate(cx, cy);
           ctx.rotate(rotRad);
           ctx.scale(zoomScale * fx, zoomScale * tiltScaleY * fy);
-          ctx.translate(-s.panX, -s.panY);
+          ctx.translate(s.panX, s.panY);
           layer.render(ctx, timeMs, currentOptics);
           ctx.restore();
         });
@@ -210,8 +218,8 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
 
           for (const label of currentSlide.labels) {
             if (totalMag >= label.minMag) {
-              const localX = (label.x - s.panX) * fx;
-              const localY = (label.y - s.panY) * tiltScaleY * fy;
+              const localX = (label.x + s.panX) * fx;
+              const localY = (label.y + s.panY) * tiltScaleY * fy;
               const rotatedX = localX * cosR - localY * sinR;
               const rotatedY = localX * sinR + localY * cosR;
 
@@ -350,8 +358,8 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
 
     // Undo the flip so dragging still follows the mouse
     onPanChange({
-      x: Math.max(-220, Math.min(220, optics.pan.x - (rdx * fx) / worldScale)),
-      y: Math.max(-220, Math.min(220, optics.pan.y - (rdy * fy) / worldScale)),
+      x: Math.max(-220, Math.min(220, optics.pan.x + (rdx * fx) / worldScale)),
+      y: Math.max(-220, Math.min(220, optics.pan.y + (rdy * fy) / worldScale)),
     });
   };
 
@@ -364,7 +372,7 @@ export const MicroscopeViewport: FC<MicroscopeViewportProps> = ({
 
   const handleWheel = (e: WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const step = e.deltaY > 0 ? -1.5 : 1.5;
+    const step = e.deltaY > 0 ? -1 : 1;
     onFineFocusDelta(step);
   };
 

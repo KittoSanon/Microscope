@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type FC } from 'react';
+import { useEffect, useMemo, useRef, useState, type FC } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { Tag } from 'lucide-react';
 import type { MicroscopePartId, ObjectivePower } from '../types/microscope';
+import { FINE_FOCUS_PERCENT_PER_DETENT } from '../constants/focus';
 
 interface MicroscopeDiagramProps {
   selectedPart: MicroscopePartId | null;
@@ -51,11 +52,10 @@ function lerp(current: number, target: number, factor: number): number {
 /* the microscope so it never overlaps the parts or other labels.      */
 /* ------------------------------------------------------------------ */
 const LINE_H = 13;
-const MAX_CHARS = 13;
+const MAX_UNBROKEN_LABEL_CHARS = 18;
 
-/** Break long labels into two lines at the separator nearest the middle. */
-function wrapLabel(text: string): string[] {
-  if (text.length <= MAX_CHARS) return [text];
+/** Wrap long labels at spaces or locale-aware word boundaries. */
+function wrapLabel(text: string, locale: string): string[] {
   const mid = text.length / 2;
   let best = -1;
   let bestDist = Infinity;
@@ -68,12 +68,43 @@ function wrapLabel(text: string): string[] {
       }
     }
   }
-  if (best === -1) return [text];
-  return [text.slice(0, best), text.slice(best + 1)];
+  if (best !== -1) return [text.slice(0, best), text.slice(best + 1)];
+  if (text.length <= MAX_UNBROKEN_LABEL_CHARS) return [text];
+
+  const wordSegments = Array.from(
+    new Intl.Segmenter(locale, { granularity: 'word' }).segment(text),
+  );
+  let position = 0;
+  for (const { segment } of wordSegments.slice(0, -1)) {
+    position += segment.length;
+    const distance = Math.abs(position - mid);
+    if (distance < bestDist) {
+      best = position;
+      bestDist = distance;
+    }
+  }
+
+  if (best === -1) {
+    const graphemes = Array.from(
+      new Intl.Segmenter(locale, { granularity: 'grapheme' }).segment(text),
+    );
+    position = 0;
+    for (const { segment } of graphemes.slice(0, -1)) {
+      position += segment.length;
+      const distance = Math.abs(position - mid);
+      if (distance < bestDist) {
+        best = position;
+        bestDist = distance;
+      }
+    }
+  }
+
+  return best === -1 ? [text] : [text.slice(0, best), text.slice(best)];
 }
 
 interface DiagramLabelProps {
   text: string;
+  locale: string;
   /** anchor point on the microscope part */
   px: number;
   py: number;
@@ -86,6 +117,7 @@ interface DiagramLabelProps {
 
 const DiagramLabel: FC<DiagramLabelProps> = ({
   text,
+  locale,
   px,
   py,
   tx,
@@ -93,7 +125,7 @@ const DiagramLabel: FC<DiagramLabelProps> = ({
   side,
   highlight = false,
 }) => {
-  const lines = wrapLabel(text);
+  const lines = useMemo(() => wrapLabel(text, locale), [text, locale]);
   const elbowX = side === 'right' ? tx - 22 : tx + 22;
   const stubX = side === 'right' ? tx - 5 : tx + 5;
   const lineY = ty - 4; // vertical middle of the text
@@ -115,7 +147,7 @@ const DiagramLabel: FC<DiagramLabelProps> = ({
         textAnchor={side === 'right' ? 'start' : 'end'}
         className={`${
           highlight ? 'fill-cyan-300' : 'fill-slate-100'
-        } font-mono text-[11px] font-semibold`}
+        } font-mono text-[10px] font-semibold`}
         paintOrder="stroke"
         stroke="#090f1c"
         strokeWidth="2.5"
@@ -150,8 +182,15 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
   onCycleObjective,
   onToggleLamp,
 }) => {
-  const { t } = useTranslation();
-  const focusCombined = Math.max(0, Math.min(100, coarseFocus + fineFocus * 0.15));
+  const { t, i18n } = useTranslation();
+  const labelLocale = i18n.resolvedLanguage ?? i18n.language;
+  const focusCombined = Math.max(
+    0,
+    Math.min(
+      100,
+      coarseFocus + fineFocus * FINE_FOCUS_PERCENT_PER_DETENT,
+    ),
+  );
 
   const computeTargets = () => ({
     turretAngle: OBJECTIVE_TURRET_ANGLE[objective],
@@ -233,13 +272,13 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
       {/*
         viewBox is wider than the microscope itself (x: 40..234) so there is
         a free label column on each side:
-          left column  : x -145 .. 0
-          right column : x 252 .. 410
+          left column  : x -68 .. 30
+          right column : x 252 .. 345
         Keep this SVG wide (max-w ~ 600px). If the parent is narrower, the
         whole drawing, including the text, scales down.
       */}
       <svg
-        viewBox="-50 0 395 355"
+        viewBox="-68 0 413 355"
         className="mx-auto my-1 h-auto w-full max-w-[520px] select-none"
         role="img"
         aria-label="Animated Compound Microscope Schematic"
@@ -670,6 +709,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Eyepiece */}
             <DiagramLabel
               text={t('diagram.labels.eyepiece')}
+              locale={labelLocale}
               px={168}
               py={38}
               tx={RIGHT_TEXT_X}
@@ -679,6 +719,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Nosepiece */}
             <DiagramLabel
               text={t('diagram.labels.nosepiece')}
+              locale={labelLocale}
               px={164}
               py={114}
               tx={RIGHT_TEXT_X}
@@ -688,6 +729,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* {objective}x Objective */}
             <DiagramLabel
               text={t('diagram.labels.objective', { obj: objective })}
+              locale={labelLocale}
               px={140}
               py={134}
               tx={RIGHT_TEXT_X}
@@ -698,6 +740,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Iris Diaphragm (follows stage movement) */}
             <DiagramLabel
               text={t('diagram.labels.iris')}
+              locale={labelLocale}
               px={161}
               py={208 + anim.stageY}
               tx={RIGHT_TEXT_X}
@@ -707,6 +750,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* X/Y Stage */}
             <DiagramLabel
               text={t('diagram.labels.xyStage')}
+              locale={labelLocale}
               px={174}
               py={231 + anim.stageY}
               tx={RIGHT_TEXT_X}
@@ -716,6 +760,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Lamp / Brightness */}
             <DiagramLabel
               text={t('diagram.labels.lamp')}
+              locale={labelLocale}
               px={148}
               py={288}
               tx={RIGHT_TEXT_X}
@@ -727,6 +772,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Stage */}
             <DiagramLabel
               text={t('diagram.labels.stage')}
+              locale={labelLocale}
               px={82}
               py={194.5 + anim.stageY}
               tx={LEFT_TEXT_X}
@@ -736,6 +782,7 @@ export const MicroscopeDiagram: FC<MicroscopeDiagramProps> = ({
             {/* Coarse/Fine Focus */}
             <DiagramLabel
               text={t('diagram.labels.focus')}
+              locale={labelLocale}
               px={54}
               py={244}
               tx={LEFT_TEXT_X}

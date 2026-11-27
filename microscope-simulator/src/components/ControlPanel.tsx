@@ -1,10 +1,19 @@
-import type { FC } from 'react';
+import { useRef, type FC, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   MicroscopePartId,
   ObjectivePower,
   OpticsState,
 } from '../types/microscope';
+import {
+  COARSE_FOCUS_DETENTS_PER_TURN,
+  COARSE_FOCUS_MAX_PERCENT,
+  COARSE_FOCUS_MIN_PERCENT,
+  COARSE_FOCUS_PERCENT_PER_DETENT,
+  FINE_FOCUS_DETENTS_PER_TURN,
+  FINE_FOCUS_LIMIT_DETENTS,
+  FINE_FOCUS_PERCENT_PER_DETENT,
+} from '../constants/focus';
 
 interface ControlPanelProps {
   optics: OpticsState;
@@ -20,6 +29,196 @@ const OBJECTIVE_CARDS: { power: ObjectivePower; labelKey: string }[] = [
   { power: 40, labelKey: 'control.objectives.highDry' },
   { power: 100, labelKey: 'control.objectives.oilImm' },
 ];
+
+const ANGLE_ROUNDING_TOLERANCE = 0.5;
+const COARSE_FOCUS_DEGREES_PER_DETENT =
+  360 / COARSE_FOCUS_DETENTS_PER_TURN;
+const FINE_FOCUS_DEGREES_PER_DETENT = 360 / FINE_FOCUS_DETENTS_PER_TURN;
+
+interface RotaryKnobProps {
+  value: number;
+  min: number;
+  max: number;
+  label: string;
+  valueText: string;
+  detentsPerTurn: number;
+  degreesPerDetent: number;
+  continuous?: boolean;
+  valuePerTurn?: number;
+  size: 'outer' | 'inner';
+  className: string;
+  onChange: (steps: number) => void;
+}
+
+const RotaryKnob: FC<RotaryKnobProps> = ({
+  value,
+  min,
+  max,
+  label,
+  valueText,
+  detentsPerTurn,
+  degreesPerDetent,
+  continuous = false,
+  valuePerTurn = 0,
+  size,
+  className,
+  onChange,
+}) => {
+  const previousAngle = useRef<number | null>(null);
+  const angleRemainder = useRef(0);
+  const wheelRemainder = useRef(0);
+  const isOuter = size === 'outer';
+  const center = isOuter ? 72 : 32;
+  const angle =
+    ((value % detentsPerTurn) + detentsPerTurn) % detentsPerTurn;
+
+  const getPointerAngle = (event: PointerEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return (
+      (Math.atan2(
+        event.clientY - (rect.top + rect.height / 2),
+        event.clientX - (rect.left + rect.width / 2),
+      ) *
+        180) /
+      Math.PI
+    );
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    previousAngle.current = getPointerAngle(event);
+    angleRemainder.current = 0;
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (previousAngle.current === null) return;
+
+    const angle = getPointerAngle(event);
+    let delta = angle - previousAngle.current;
+    if (delta > 180) delta -= 360;
+    else if (delta < -180) delta += 360;
+    previousAngle.current = angle;
+
+    if (continuous) {
+      onChange((delta / 360) * valuePerTurn);
+      return;
+    }
+
+    angleRemainder.current += delta;
+
+    const steps =
+      Math.sign(angleRemainder.current) *
+      Math.floor(
+        (Math.abs(angleRemainder.current) + ANGLE_ROUNDING_TOLERANCE) /
+          degreesPerDetent,
+      );
+    if (steps !== 0) {
+      angleRemainder.current -= steps * degreesPerDetent;
+      onChange(steps);
+    }
+  };
+
+  const handlePointerEnd = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    previousAngle.current = null;
+    angleRemainder.current = 0;
+  };
+
+  const handleWheel = (event: WheelEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    wheelRemainder.current += event.deltaY;
+    const steps = Math.trunc(wheelRemainder.current / 100);
+    if (steps !== 0) {
+      wheelRemainder.current -= steps * 100;
+      onChange(-steps);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const keySteps: Record<string, number> = {
+      ArrowUp: 1,
+      ArrowRight: 1,
+      ArrowDown: -1,
+      ArrowLeft: -1,
+      PageUp: detentsPerTurn,
+      PageDown: -detentsPerTurn,
+    };
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      event.stopPropagation();
+      onChange(min - value);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      event.stopPropagation();
+      onChange(max - value);
+    } else if (keySteps[event.key] !== undefined) {
+      event.preventDefault();
+      event.stopPropagation();
+      onChange(keySteps[event.key]);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      role="slider"
+      aria-label={label}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      aria-valuetext={valueText}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onWheel={handleWheel}
+      onKeyDown={handleKeyDown}
+      className={`${className} flex touch-none cursor-grab items-center justify-center rounded-full border border-slate-600 bg-slate-900 p-1 shadow-md outline-none transition ${
+        isOuter
+          ? 'hover:border-amber-400 focus-visible:ring-amber-400'
+          : 'hover:border-cyan-400 focus-visible:ring-cyan-400'
+      } focus-visible:ring-2 active:cursor-grabbing`}
+      style={{ touchAction: 'none' }}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox={isOuter ? '0 0 144 144' : '0 0 64 64'}
+        className={isOuter ? 'h-full w-full' : 'h-16 w-16'}
+      >
+        <circle
+          cx={center}
+          cy={center}
+          r={isOuter ? 66 : 29}
+          fill={isOuter ? '#0b1120' : '#111827'}
+          stroke="#64748b"
+        />
+        <g
+          transform={`rotate(${angle * degreesPerDetent} ${center} ${center})`}
+        >
+          <line
+            x1={center}
+            y1={center}
+            x2={center}
+            y2={isOuter ? 18 : 10}
+            stroke={isOuter ? '#f59e0b' : '#22d3ee'}
+            strokeWidth={isOuter ? 3 : 2.5}
+            strokeLinecap="round"
+          />
+        </g>
+        <circle
+          cx={center}
+          cy={center}
+          r={isOuter ? 5 : 4}
+          fill={isOuter ? '#f59e0b' : '#22d3ee'}
+        />
+      </svg>
+    </button>
+  );
+};
 
 export const ControlPanel: FC<ControlPanelProps> = ({
   optics,
@@ -37,7 +236,10 @@ export const ControlPanel: FC<ControlPanelProps> = ({
   const isHighMag = optics.objective >= 40;
   const effectiveFocus = Math.max(
     0,
-    Math.min(100, optics.coarseFocus + optics.fineFocus * 0.12)
+    Math.min(
+      100,
+      optics.coarseFocus + optics.fineFocus * FINE_FOCUS_PERCENT_PER_DETENT,
+    ),
   );
   const deltaZ = effectiveFocus - focalPlane;
   const isSharp = Math.abs(deltaZ) < 1.0;
@@ -138,24 +340,10 @@ export const ControlPanel: FC<ControlPanelProps> = ({
                 {optics.coarseFocus.toFixed(1)}%
               </span>
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={optics.coarseFocus}
-              onChange={(e) =>
-                onChangeOptics((prev) => ({
-                  ...prev,
-                  coarseFocus: Number(e.target.value),
-                }))
-              }
-              className="w-full accent-cyan-400 cursor-pointer"
-            />
           </div>
 
-          <div>
-            <div className="mb-1 flex justify-between text-xs">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3 text-xs">
               <span className="text-slate-300">
                 {t('control.focus.fine')}{' '}
                 <span className="text-[10px] text-slate-400">
@@ -163,26 +351,69 @@ export const ControlPanel: FC<ControlPanelProps> = ({
                 </span>
               </span>
               <span className="font-mono tabular-nums text-slate-300">
-                {optics.fineFocus >= 0
-                  ? `+${(optics.fineFocus * 0.12).toFixed(2)}`
-                  : (optics.fineFocus * 0.12).toFixed(2)}{' '}
-                µm
+                {optics.fineFocus > 0 ? '+' : ''}
+                {(optics.fineFocus * FINE_FOCUS_PERCENT_PER_DETENT).toFixed(
+                  2,
+                )}
+                %
               </span>
             </div>
-            <input
-              type="range"
-              min={-50}
-              max={50}
-              step={1}
-              value={optics.fineFocus}
-              onChange={(e) =>
-                onChangeOptics((prev) => ({
-                  ...prev,
-                  fineFocus: Number(e.target.value),
-                }))
-              }
-              className="w-full accent-cyan-400 cursor-pointer"
-            />
+            <div className="flex justify-center">
+              <div className="relative h-40 w-40">
+                <RotaryKnob
+                  value={optics.coarseFocus}
+                  min={COARSE_FOCUS_MIN_PERCENT}
+                  max={COARSE_FOCUS_MAX_PERCENT}
+                  label={t('control.focus.coarse')}
+                  valueText={`${optics.coarseFocus.toFixed(1)}%`}
+                  detentsPerTurn={COARSE_FOCUS_DETENTS_PER_TURN}
+                  degreesPerDetent={COARSE_FOCUS_DEGREES_PER_DETENT}
+                  continuous
+                  valuePerTurn={
+                    COARSE_FOCUS_DETENTS_PER_TURN *
+                    COARSE_FOCUS_PERCENT_PER_DETENT
+                  }
+                  size="outer"
+                  className="absolute inset-0 z-0 h-full w-full"
+                  onChange={(steps) =>
+                    onChangeOptics((prev) => ({
+                      ...prev,
+                      coarseFocus: Math.max(
+                        COARSE_FOCUS_MIN_PERCENT,
+                        Math.min(
+                          COARSE_FOCUS_MAX_PERCENT,
+                          prev.coarseFocus +
+                            steps * COARSE_FOCUS_PERCENT_PER_DETENT,
+                        ),
+                      ),
+                    }))
+                  }
+                />
+                <RotaryKnob
+                  value={optics.fineFocus}
+                  min={-FINE_FOCUS_LIMIT_DETENTS}
+                  max={FINE_FOCUS_LIMIT_DETENTS}
+                  label={t('control.focus.fine')}
+                  valueText={`${(optics.fineFocus * FINE_FOCUS_PERCENT_PER_DETENT).toFixed(2)}%`}
+                  detentsPerTurn={FINE_FOCUS_DETENTS_PER_TURN}
+                  degreesPerDetent={FINE_FOCUS_DEGREES_PER_DETENT}
+                  size="inner"
+                  className="absolute left-1/2 top-1/2 z-10 h-20 w-20 -translate-x-1/2 -translate-y-1/2"
+                  onChange={(steps) =>
+                    onChangeOptics((prev) => ({
+                      ...prev,
+                      fineFocus: Math.max(
+                        -FINE_FOCUS_LIMIT_DETENTS,
+                        Math.min(
+                          FINE_FOCUS_LIMIT_DETENTS,
+                          prev.fineFocus + steps,
+                        ),
+                      ),
+                    }))
+                  }
+                />
+              </div>
+            </div>
           </div>
         </div>
 

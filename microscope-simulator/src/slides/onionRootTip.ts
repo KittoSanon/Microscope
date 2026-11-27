@@ -75,7 +75,7 @@ export const onionRootTipSlide: SlideDefinition = {
   stain: 'Acetocarmine',
   description:
     'Layered meristem tissue showing cell walls and nuclei at different depths. Use fine focus to move between the two nucleus planes.',
-  focalPlane: 50,
+  focalPlane: 80,
   requiresOilAt100x: false,
   labels: [
     { id: 'cell-wall', text: 'Cell Wall', x: -55, y: -35, minMag: 100 },
