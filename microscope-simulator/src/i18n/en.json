@@ -19,9 +19,9 @@
       "title": "Focus Adjustment",
       "sharp": "Sharp Focus",
       "blurry": "Out of Focus",
-      "coarse": "Coarse Focus Knob",
+      "coarse": "Coarse Adjustment Knob",
       "coarseHint": "(Rough / Wide)",
-      "fine": "Fine Focus Knob",
+      "fine": "Fine Adjustment Knob",
       "fineHint": "(Precision / High-Mag)",
       "hazard": "At {{obj}}× magnification, depth of field is shallow—use Fine Focus for small adjustments and avoid coarse sweeps to prevent slide/objective contact."
     },
@@ -31,7 +31,7 @@
       "on": "LAMP ON",
       "off": "LAMP OFF",
       "rheostat": "Rheostat Brightness",
-      "iris": "Iris Aperture"
+      "iris": "Iris Diaphragm"
     },
 
     "stage": {
@@ -50,21 +50,21 @@
     "ariaLabel": "Animated Compound Microscope Schematic",
     "parts": {
       "ocular": "Eyepiece",
-      "nosepiece": "Nosepiece",
+      "nosepiece": "Revolving Nosepiece",
       "objectives": "Objectives",
       "stage": "Stage",
       "diaphragm": "Iris Diaphragm",
-      "focus": "Focus Knobs",
+      "focus": "Coarse Adjustment Knobs",
       "illuminator": "Illuminator"
     },
     "labels": {
       "eyepiece": "10x Eyepiece",
-      "nosepiece": "Nosepiece",
+      "nosepiece": "Revolving Nosepiece",
       "objective": "{{obj}}x Objective",
       "stage": "Stage",
       "iris": "Iris Diaphragm",
-      "xyStage": "X/Y Stage",
-      "focus": "Coarse/Fine Focus",
+      "xyStage": "Stage Adjustment Knobs",
+      "focus": "Coarse/Fine Adjustment",
       "lamp": "Lamp / Brightness"
     },
     "footer": "Click objective to cycle magnification or <lamp>lamp</lamp> to toggle power."
